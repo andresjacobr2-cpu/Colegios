@@ -4,3 +4,4 @@ xlrd
 folium
 streamlit-folium
 plotly
+geopy
