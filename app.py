@@ -140,41 +140,37 @@ try:
         single_mode = len(selected_localidades) == 1
         
         if single_mode:
-            st.info(f"📍 Mostrando colegios individuales para **{selected_localidades[0]}**. El geocodificado puede tomar unos segundos.")
+            locality_name = selected_localidades[0]
+            loc_info = localidades_info.get(locality_name, {'lat': 4.6097, 'lon': -74.0817})
             
-            # Initialize geocoder
-            geolocator = Nominatim(user_agent="bogota_edu_app")
-            geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+            st.info(f"📍 Ubicando colegios en **{locality_name}**...")
+            
+            geolocator = Nominatim(user_agent="bogota_edu_app_v2")
             
             if 'geocoded_data' not in st.session_state:
                 st.session_state.geocoded_data = {}
             
-            locality = selected_localidades[0]
-            
-            # Data to geocode
             to_map = df_filtered.copy()
-            
-            # For the prototype, we limit to 30 points to avoid long waits, 
-            # or use jitter if we want to show ALL points quickly.
             limit = 40 
             if len(to_map) > limit:
-                st.warning(f"Se muestran los primeros {limit} colegios de {len(to_map)} para optimizar velocidad.")
+                st.warning(f"Mostrando muestra de {limit} colegios para mayor velocidad.")
                 to_map = to_map.head(limit)
             
-            # Progress bar
             progress_bar = st.progress(0)
-            status_text = st.empty()
             
             points = []
             for i, (idx, row) in enumerate(to_map.iterrows()):
-                addr = f"{row['DIRECCION CATASTRO']}, {row['NOMBRE LOCALIDAD']}, Bogota, Colombia"
+                # Clean address: remove -- and extra spaces
+                clean_addr = str(row['DIRECCION CATASTRO']).replace('--', ' ').strip()
+                full_query = f"{clean_addr}, {row['NOMBRE LOCALIDAD']}, Bogota, Colombia"
                 
-                if addr in st.session_state.geocoded_data:
-                    location = st.session_state.geocoded_data[addr]
+                if full_query in st.session_state.geocoded_data:
+                    location = st.session_state.geocoded_data[full_query]
                 else:
                     try:
-                        location = geolocator.geocode(addr, timeout=10)
-                        st.session_state.geocoded_data[addr] = location
+                        # Try searching with just the cleaned address
+                        location = geolocator.geocode(full_query, timeout=5)
+                        st.session_state.geocoded_data[full_query] = location
                     except:
                         location = None
                 
@@ -186,28 +182,22 @@ try:
                         'info': f"<b>{row['NOMBRE ESTABLECIMIENTO']}</b><br>{row['NIVELES']}"
                     })
                 
-                # Update progress
                 progress_bar.progress((i + 1) / len(to_map))
-                status_text.text(f"Geocodificando {i+1}/{len(to_map)}...")
             
-            status_text.empty()
             progress_bar.empty()
 
-            # Create Individual Map
-            if points:
-                center_lat = points[0]['lat']
-                center_lon = points[0]['lon']
-                m = folium.Map(location=[center_lat, center_lon], zoom_start=14, tiles="CartoDB dark_matter")
-                
-                for p in points:
-                    folium.Marker(
-                        location=[p['lat'], p['lon']],
-                        popup=p['info'],
-                        icon=folium.Icon(color='blue', icon='graduation-cap', prefix='fa')
-                    ).add_to(m)
-            else:
-                st.error("No se pudieron geocodificar las direcciones. Reintenta o selecciona otra localidad.")
-                m = folium.Map(location=[4.6097, -74.0817], zoom_start=11, tiles="CartoDB dark_matter")
+            # Create Map centered on Locality Centroid
+            m = folium.Map(location=[loc_info['lat'], loc_info['lon']], zoom_start=14, tiles="CartoDB dark_matter")
+            
+            for p in points:
+                folium.Marker(
+                    location=[p['lat'], p['lon']],
+                    popup=p['info'],
+                    icon=folium.Icon(color='blue', icon='graduation-cap', prefix='fa')
+                ).add_to(m)
+            
+            if not points:
+                st.warning("No se encontraron coordenadas exactas para los colegios de esta muestra, pero puedes ver el área general.")
         
         else:
             # Use pre-calculated aggregates
