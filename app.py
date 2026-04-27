@@ -131,7 +131,40 @@ try:
     map_counts.columns = ['Localidad', 'Count']
 
     # --- TABS FOR DIFFERENT VIEWS ---
-    tab_map, tab_stats, tab_data = st.tabs(["🗺️ Mapa Territorial", "📊 Estadísticas", "📋 Explorador de Datos"])
+    tab_stats, tab_data, tab_map = st.tabs(["📊 Estadísticas", "📋 Explorador de Datos", "🗺️ Mapa Territorial"])
+
+    with tab_stats:
+        col_s1, col_s2 = st.columns(2)
+        
+        with col_s1:
+            st.subheader("Top Localidades (Filtradas)")
+            fig_bar = px.bar(map_counts.head(10), x='Count', y='Localidad', orientation='h', 
+                             color='Count', color_continuous_scale='Viridis', template="plotly_dark")
+            st.plotly_chart(fig_bar, use_container_width=True)
+            
+        with col_s2:
+            st.subheader("Oferta por Calendario")
+            fig_pie = px.pie(df_filtered, names='CALENDARIOS', hole=0.5, template="plotly_dark")
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+        st.subheader("Combinaciones de Jornadas más comunes")
+        jornadas_counts = df_filtered['JORNADAS'].value_counts().head(10).reset_index()
+        fig_jor = px.bar(jornadas_counts, x='count', y='JORNADAS', orientation='h', template="plotly_dark")
+        st.plotly_chart(fig_jor, use_container_width=True)
+
+    with tab_data:
+        st.subheader("Listado Detallado")
+        st.dataframe(df_filtered[['NOMBRE ESTABLECIMIENTO', 'NOMBRE LOCALIDAD', 'DIRECCION CATASTRO', 'TELEFONO', 'CALENDARIOS', 'NIVELES']], 
+                     use_container_width=True)
+        
+        # Download Option
+        csv = df_filtered.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Descargar datos filtrados (CSV)",
+            data=csv,
+            file_name='colegios_filtrados.csv',
+            mime='text/csv',
+        )
 
     with tab_map:
         st.subheader("Distribución Espacial")
@@ -220,40 +253,6 @@ try:
                 ).add_to(m)
         
         st_folium(m, width="100%", height=500)
-
-    with tab_stats:
-        col_s1, col_s2 = st.columns(2)
-        
-        with col_s1:
-            st.subheader("Top Localidades (Filtradas)")
-            fig_bar = px.bar(map_counts.head(10), x='Count', y='Localidad', orientation='h', 
-                             color='Count', color_continuous_scale='Viridis', template="plotly_dark")
-            st.plotly_chart(fig_bar, use_container_width=True)
-            
-        with col_s2:
-            st.subheader("Oferta por Calendario")
-            fig_pie = px.pie(df_filtered, names='CALENDARIOS', hole=0.5, template="plotly_dark")
-            st.plotly_chart(fig_pie, use_container_width=True)
-
-        st.subheader("Combinaciones de Jornadas más comunes")
-        jornadas_counts = df_filtered['JORNADAS'].value_counts().head(10).reset_index()
-        fig_jor = px.bar(jornadas_counts, x='count', y='JORNADAS', orientation='h', template="plotly_dark")
-        st.plotly_chart(fig_jor, use_container_width=True)
-
-    with tab_data:
-        st.subheader("Listado Detallado")
-        st.dataframe(df_filtered[['NOMBRE ESTABLECIMIENTO', 'NOMBRE LOCALIDAD', 'DIRECCION CATASTRO', 'TELEFONO', 'CALENDARIOS', 'NIVELES']], 
-                     use_container_width=True)
-        
-        # Download Option
-        csv = df_filtered.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Descargar datos filtrados (CSV)",
-            data=csv,
-            file_name='colegios_filtrados.csv',
-            mime='text/csv',
-        )
-
 except Exception as e:
     st.error(f"Error cargando los datos: {e}")
     st.info("Asegúrate de que el archivo 'Establecimientos educativos 1_8_2025 (1).xls' esté en la misma carpeta.")
