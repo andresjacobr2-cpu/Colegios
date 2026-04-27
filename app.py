@@ -56,7 +56,10 @@ def load_data():
     file_path = "Establecimientos educativos 1_8_2025 (1).xls"
     df = pd.read_excel(file_path, skiprows=1)
     # Basic cleaning
-    df['NOMBRE LOCALIDAD'] = df['NOMBRE LOCALIDAD'].str.strip()
+    df['NOMBRE LOCALIDAD'] = df['NOMBRE LOCALIDAD'].astype(str).str.strip()
+    df['NIVELES'] = df['NIVELES'].fillna("No especificado").astype(str)
+    df['CALENDARIOS'] = df['CALENDARIOS'].fillna("OTRO").astype(str)
+    df['NOMBRE ESTABLECIMIENTO'] = df['NOMBRE ESTABLECIMIENTO'].astype(str)
     return df
 
 # Main Logic
@@ -70,16 +73,16 @@ try:
     st.sidebar.header("🔍 Filtros de Búsqueda")
     
     # 1. Filter by Localidad
-    all_localidades = sorted(df['NOMBRE LOCALIDAD'].unique())
+    all_localidades = sorted([x for x in df['NOMBRE LOCALIDAD'].unique() if x != 'nan'])
     selected_localidades = st.sidebar.multiselect("Seleccionar Localidad", all_localidades, default=all_localidades[:3])
     
     # 2. Filter by Level
     # Extract all possible levels
-    all_levels = sorted(list(set(df['NIVELES'].str.split('--', expand=True).stack())))
+    all_levels = sorted(list(set(df['NIVELES'].str.split('--', expand=True).stack().unique())))
     selected_levels = st.sidebar.multiselect("Niveles Educativos", all_levels, default=all_levels)
     
     # 3. Filter by Calendar
-    calendars = df['CALENDARIOS'].unique()
+    calendars = sorted(df['CALENDARIOS'].unique())
     selected_calendars = st.sidebar.multiselect("Calendario", calendars, default=calendars)
 
     # Apply Filters
