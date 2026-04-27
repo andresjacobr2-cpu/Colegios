@@ -54,14 +54,19 @@ localidades_info = {
 @st.cache_data
 def load_data():
     file_path = "Establecimientos educativos 1_8_2025 (1).xls"
-    df = pd.read_excel(file_path, skiprows=1)
+    # Read everything as string to avoid type conflicts
+    df = pd.read_excel(file_path, skiprows=1, dtype=str)
     
-    # Robust cleaning for all object columns
+    # Fill all NaNs with a standard string
+    df = df.fillna("No especificado")
+    
+    # Clean whitespace
     for col in df.columns:
-        if df[col].dtype == 'object':
-            df[col] = df[col].astype(str).replace('nan', 'No especificado').str.strip()
-        else:
-            df[col] = df[col].fillna(0)
+        df[col] = df[col].str.strip()
+        
+    # Convert specifically needed numeric columns safely
+    if 'CANTIDAD DE SEDES ACTIVAS' in df.columns:
+        df['CANTIDAD DE SEDES ACTIVAS'] = pd.to_numeric(df['CANTIDAD DE SEDES ACTIVAS'], errors='coerce').fillna(0)
             
     return df
 
@@ -76,17 +81,17 @@ try:
     st.sidebar.header("🔍 Filtros de Búsqueda")
     
     # 1. Filter by Localidad
-    all_localidades = sorted([x for x in df['NOMBRE LOCALIDAD'].unique() if x != 'No especificado'])
+    all_localidades = sorted([str(x) for x in df['NOMBRE LOCALIDAD'].unique() if str(x) != 'No especificado'])
     selected_localidades = st.sidebar.multiselect("Seleccionar Localidad", all_localidades, default=all_localidades[:3])
     
     # 2. Filter by Level
     # Extract all possible levels
-    all_levels = sorted(list(set(df['NIVELES'].str.split('--', expand=True).stack().unique())))
-    if 'No especificado' in all_levels: all_levels.remove('No especificado')
+    raw_levels = df['NIVELES'].str.split('--', expand=True).stack().unique()
+    all_levels = sorted([str(x) for x in raw_levels if str(x) != 'No especificado'])
     selected_levels = st.sidebar.multiselect("Niveles Educativos", all_levels, default=all_levels)
     
     # 3. Filter by Calendar
-    calendars = sorted(df['CALENDARIOS'].unique())
+    calendars = sorted([str(x) for x in df['CALENDARIOS'].unique()])
     selected_calendars = st.sidebar.multiselect("Calendario", calendars, default=calendars)
 
     # Apply Filters
