@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Analysis files (optional to exclude, but good to keep clean)
+spatial_profile.py
+territorial_analysis.py
+detailed_analysis.py
+analyze_excel.py
