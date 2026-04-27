@@ -126,6 +126,10 @@ try:
         if total_area > 0:
             st.metric("Densidad (Col/km²)", f"{(len(df_filtered)/total_area):.2f}")
 
+    # --- CALCULATE AGGREGATES FOR TABS ---
+    map_counts = df_filtered['NOMBRE LOCALIDAD'].value_counts().reset_index()
+    map_counts.columns = ['Localidad', 'Count']
+
     # --- TABS FOR DIFFERENT VIEWS ---
     tab_map, tab_stats, tab_data = st.tabs(["🗺️ Mapa Territorial", "📊 Estadísticas", "📋 Explorador de Datos"])
 
@@ -206,10 +210,7 @@ try:
                 m = folium.Map(location=[4.6097, -74.0817], zoom_start=11, tiles="CartoDB dark_matter")
         
         else:
-            # Prepare Aggregate Map Data
-            map_counts = df_filtered['NOMBRE LOCALIDAD'].value_counts().reset_index()
-            map_counts.columns = ['Localidad', 'Count']
-            
+            # Use pre-calculated aggregates
             geo_df = pd.DataFrame.from_dict(localidades_info, orient='index').reset_index()
             geo_df.columns = ['Localidad', 'area', 'lat', 'lon']
             map_data = pd.merge(map_counts, geo_df, on='Localidad')
