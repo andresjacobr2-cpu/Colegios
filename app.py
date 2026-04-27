@@ -127,8 +127,11 @@ try:
             st.metric("Densidad (Col/km²)", f"{(len(df_filtered)/total_area):.2f}")
 
     # --- CALCULATE AGGREGATES FOR TABS ---
-    map_counts = df_filtered['NOMBRE LOCALIDAD'].value_counts().reset_index()
-    map_counts.columns = ['Localidad', 'Count']
+    if not df_filtered.empty:
+        map_counts = df_filtered['NOMBRE LOCALIDAD'].value_counts().reset_index()
+        map_counts.columns = ['Localidad', 'Count']
+    else:
+        map_counts = pd.DataFrame(columns=['Localidad', 'Count'])
 
     # --- TABS FOR DIFFERENT VIEWS ---
     tab_stats, tab_data, tab_map = st.tabs(["📊 Estadísticas", "📋 Explorador de Datos", "🗺️ Mapa Territorial"])
